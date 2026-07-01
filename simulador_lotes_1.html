@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Simulador de Financiamiento — Colonia Ensayo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --cream: #F5F0E8; --earth: #2C2416; --green: #3A6B4A;
+    --green-light: #EAF2EC; --green-mid: #5A9B6E;
+    --border: rgba(44,36,22,0.13); --text: #2C2416;
+    --text-mid: #6B5E4A; --text-light: #9B8E7A;
+  }
+  html, body { background: var(--cream); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 0 80px; }
+  header { background: var(--earth); padding: 2rem 1.5rem 1.75rem; text-align: center; }
+  .logo-mark { width: 48px; height: 48px; background: var(--green); border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; }
+  .logo-mark svg { width: 24px; height: 24px; fill: white; }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 500; color: var(--cream); letter-spacing: -0.01em; margin-bottom: 5px; }
+  header p { font-size: 12px; color: rgba(245,240,232,0.5); letter-spacing: 0.06em; text-transform: uppercase; }
+  .body { padding: 1.5rem 1.25rem; }
+  .step { margin-bottom: 2rem; }
+  .step.locked { opacity: 0.35; pointer-events: none; }
+  .step.hidden { display: none; }
+  .step-label { font-size: 11px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-light); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .step-label::before { content: attr(data-n); width: 20px; height: 20px; background: var(--earth); color: var(--cream); border-radius: 50%; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .barrio-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .lote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cuotas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .cuotas-grid .btn-card { padding: 10px 6px; }
+  .cuotas-grid .btn-card .name { font-size: 12px; }
+  .cuotas-grid .btn-card .price { font-size: 13px; }
+  .entrega-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+  .btn-card { border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; background: white; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  .btn-card:active { background: var(--green-light); }
+  .btn-card.active { border: 2px solid var(--green); background: var(--green-light); }
+  .btn-card .name { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.2; }
+  .btn-card .sub { font-size: 11px; color: var(--text-light); margin-top: 3px; }
+  .btn-card .price { font-size: 12px; color: var(--green); font-weight: 500; margin-top: 5px; }
+  .btn-card.active .name { color: var(--green); }
+
+  /* Lote seleccionado banner (visible solo en paso 2) */
+  .lote-elegido-card { background: white; border: 1.5px solid var(--green); border-radius: 12px; padding: 14px 16px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .lote-elegido-card .info .name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .lote-elegido-card .info .sub { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .lote-elegido-card .price { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--green); }
+  .lote-elegido-card .price-label { font-size: 10px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.04em; text-align: right; }
+
+  .monto-custom { display: none; margin-top: 10px; }
+  .monto-custom.show { display: block; }
+  .monto-custom label { font-size: 12px; color: var(--text-mid); margin-bottom: 6px; display: block; }
+  .monto-input-wrap { display: flex; align-items: center; background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 4px 14px; }
+  .monto-input-wrap span { font-size: 14px; color: var(--text-light); margin-right: 6px; }
+  .monto-input-wrap input { border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 10px 0; width: 100%; background: transparent; color: var(--text); }
+
+  .continuar-btn { display: block; width: 100%; margin-top: 14px; padding: 13px; background: var(--earth); color: var(--cream); border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; touch-action: manipulation; }
+  .continuar-btn:active { background: #3d3322; }
+
+  #resultado { display: none; }
+  .result-card { background: var(--earth); border-radius: 16px; padding: 1.5rem; color: var(--cream); margin-bottom: 1rem; }
+  .result-tag { font-size: 11px; color: rgba(245,240,232,0.45); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1.25rem; line-height: 1.5; }
+  .result-tag span { color: rgba(245,240,232,0.8); }
+  .result-center { text-align: center; margin-bottom: 1.5rem; }
+  .res-label { font-size: 11px; color: rgba(245,240,232,0.45); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .res-value { font-family: 'Playfair Display', serif; font-size: 38px; color: #7DC898; line-height: 1; }
+  .res-sub { font-size: 12px; color: rgba(245,240,232,0.4); margin-top: 6px; }
+  .res-entrega { font-size: 12px; color: rgba(245,240,232,0.6); margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .wa-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; background: #25D366; border: none; border-radius: 12px; color: white; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; touch-action: manipulation; }
+  .wa-btn:active { background: #1eb355; }
+  .wa-btn svg { width: 22px; height: 22px; fill: white; flex-shrink: 0; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.75rem 0; }
+  .qr-section { background: white; border: 1.5px solid var(--border); border-radius: 16px; padding: 1.5rem; text-align: center; margin-top: 1rem; }
+  .qr-section h3 { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--earth); margin-bottom: 4px; }
+  .qr-section > p { font-size: 12px; color: var(--text-light); margin-bottom: 1.25rem; line-height: 1.5; }
+  .qr-img-wrap { display: flex; justify-content: center; margin-bottom: 1rem; }
+  .qr-img-wrap img { width: 160px; height: 160px; border-radius: 8px; display: block; }
+  .qr-steps { text-align: left; }
+  .qr-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: 13px; color: var(--text-mid); line-height: 1.4; }
+  .qr-step-n { width: 20px; height: 20px; background: var(--green); color: white; border-radius: 50%; font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .qr-link { display: block; margin-top: 1rem; padding: 10px 12px; background: var(--cream); border-radius: 8px; font-size: 12px; color: var(--green); word-break: break-all; font-weight: 500; text-decoration: none; border: 1px solid var(--border); }
+  footer { text-align: center; padding: 2rem 1.25rem 0; font-size: 12px; color: var(--text-light); line-height: 1.7; }
+  .editar-link { font-size: 12px; color: var(--green); text-align: center; display: block; margin-top: 10px; cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M3 17l4-8 4 5 3-3 4 6H3z"/><circle cx="19" cy="6" r="1.5"/></svg>
+    </div>
+    <h1>Simulador de Financiamiento</h1>
+    <p>Colonia Ensayo · Entre Ríos</p>
+  </header>
+
+  <div class="body">
+
+    <!-- PASO 1: Barrio -->
+    <div class="step" id="step1">
+      <p class="step-label" data-n="1">Elegí el barrio</p>
+      <div class="barrio-grid" id="barrio-grid"></div>
+    </div>
+
+    <!-- PASO 2: Lote (con precio visible) -->
+    <div class="step locked" id="step2">
+      <p class="step-label" data-n="2">Elegí tu lote</p>
+      <div class="lote-grid" id="lote-grid">
+        <div style="font-size:13px;color:var(--text-light);grid-column:1/-1;">Primero elegí un barrio</div>
+      </div>
+      <div id="lote-elegido-wrap"></div>
+    </div>
+
+    <!-- A partir de aquí, el precio ya no se muestra -->
+    <div class="step locked hidden" id="step3">
+      <p class="step-label" data-n="3">Entrega inicial</p>
+      <div class="entrega-grid" id="entrega-grid"></div>
+      <div class="monto-custom" id="monto-custom">
+        <label>Ingresá el monto de entrega</label>
+        <div class="monto-input-wrap">
+          <span>USD</span>
+          <input type="number" id="monto-input" placeholder="0" min="0" step="50" inputmode="numeric">
+        </div>
+      </div>
+    </div>
+
+    <div class="step locked hidden" id="step4">
+      <p class="step-label" data-n="4">Cantidad de cuotas</p>
+      <div class="cuotas-grid" id="cuotas-grid"></div>
+    </div>
+
+    <div id="resultado">
+      <div class="result-card">
+        <p class="result-tag">Lote <span id="res-lote">—</span> · <span id="res-barrio">—</span> · <span id="res-sup">—</span></p>
+        <div class="result-center">
+          <p class="res-label">Tu cuota mensual en dólares</p>
+          <p class="res-value" id="res-cuota">—</p>
+          <p class="res-sub" id="res-sub">— cuotas mensuales en USD</p>
+        </div>
+        <p class="res-entrega" id="res-entrega-info">Sin entrega inicial</p>
+        <button class="wa-btn" onclick="consultarWA()" style="margin-top:1.25rem;">
+          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.821.476 3.533 1.31 5.016L2 22l5.12-1.293A9.953 9.953 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 11.998 2zm.002 18a7.96 7.96 0 0 1-4.063-1.113l-.292-.173-3.037.767.796-2.964-.19-.305A7.96 7.96 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/></svg>
+          Consultar por este lote
+        </button>
+      </div>
+      <span class="editar-link" onclick="reiniciar()">Elegir otro lote</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="qr-section">
+      <h3>Compartí el simulador</h3>
+      <p>Publicalo en Tiiny.host para obtener tu QR y link real</p>
+      <div class="qr-img-wrap">
+        <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Ftiiny.host&color=2C2416&bgcolor=FFFFFF" alt="QR del simulador">
+      </div>
+      <div class="qr-steps">
+        <div class="qr-step"><div class="qr-step-n">1</div><div>Entrá a <strong>tiiny.host</strong> desde tu computadora</div></div>
+        <div class="qr-step"><div class="qr-step-n">2</div><div>Arrastrá el archivo <strong>simulador_lotes.html</strong></div></div>
+        <div class="qr-step"><div class="qr-step-n">3</div><div>Elegí el nombre <strong>lotes-colonia-ensayo</strong></div></div>
+        <div class="qr-step"><div class="qr-step-n">4</div><div>El QR y el link se generan solos — compartilo por WhatsApp o imprimilo</div></div>
+      </div>
+      <a class="qr-link" href="https://tiiny.host" target="_blank">tiiny.host → subir archivo</a>
+    </div>
+
+    <footer>
+      Financiación 100% en dólares · Tenencia inmediata al boleto<br>
+      © Desarrollos Colonia Ensayo
+    </footer>
+  </div>
+</div>
+
+<script>
+const TASA = 0.08;
+const WA_NUMBER = '543435033220';
+const BARRIOS = [
+  { id:'loma', nombre:'Loma Hermosa', sub:'Ruta 11 Km 23', lotes:[
+    { id:'35-1',  label:'Mz.35 L.1',   sup:'660m²', precio:13000 },
+    { id:'36-7',  label:'Mz.36 L.7',   sup:'540m²', precio:14500 },
+    { id:'15-3',  label:'Mz.15 L.3',   sup:'500m²', precio:10000 },
+    { id:'17-1',  label:'Mz.17 L.1',   sup:'450m²', precio:9500  },
+    { id:'12-3',  label:'Mz.12 L.3',   sup:'450m²', precio:11500 },
+    { id:'24-15', label:'Mz.24a L.15', sup:'450m²', precio:12500 },
+    { id:'22-16', label:'Mz.22 L.16',  sup:'450m²', precio:9500  },
+    { id:'22-14', label:'Mz.22 L.14',  sup:'450m²', precio:12500 },
+    { id:'47-10', label:'Mz.47 L.10',  sup:'450m²', precio:11000 },
+  ]},
+  { id:'santa', nombre:'Santa María 2', sub:'Colonia Ensayo', lotes:[
+    { id:'8-13', label:'Mz.8 L.13', sup:'450m²', precio:10200 },
+  ]},
+  { id:'lomas', nombre:'Lomas del Sur', sub:'Colonia Ensayo', lotes:[
+    { id:'14-15', label:'Mz.14 L.15', sup:'450m²', precio:12500 },
+    { id:'19-1',  label:'Mz.19 L.1',  sup:'480m²', precio:11500 },
+    { id:'19-7',  label:'Mz.19 L.7',  sup:'510m²', precio:11500 },
+    { id:'19-10', label:'Mz.19 L.10', sup:'510m²', precio:11500 },
+  ]}
+];
+const CUOTAS_OPS = [6,12,18,24,36,48,60,72,84];
+const ENTREGA_OPS = [
+  { id:'sin', label:'Sin entrega', pct:0 },
+  { id:'10',  label:'10%',         pct:0.10 },
+  { id:'20',  label:'20%',         pct:0.20 },
+  { id:'30',  label:'30%',         pct:0.30 },
+  { id:'custom', label:'Otro monto', pct:null }
+];
+const MAX_ENTREGA_FRAC = 0.60; // tope interno, nunca mostrado a partir del paso 3
+
+let selBarrio=null, selLote=null, loteConfirmado=false, selEntrega=null, montoCustom=0, selCuotas=null;
+
+function fmt(n){ return 'USD '+n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function calcCuota(saldo,n){ const r=Math.pow(1+TASA,1/12)-1; return saldo*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1); }
+
+function getSaldoFinanciar(){
+  if(!selLote) return 0;
+  if(!selEntrega) return selLote.precio;
+  if(selEntrega.id==='custom'){
+    let m = montoCustom || 0;
+    const tope = selLote.precio * MAX_ENTREGA_FRAC;
+    if(m < 0) m = 0;
+    if(m > tope) m = tope;
+    return selLote.precio - m;
+  }
+  return selLote.precio * (1 - selEntrega.pct);
+}
+
+function renderBarrios(){
+  const g=document.getElementById('barrio-grid'); g.innerHTML='';
+  BARRIOS.forEach(b=>{ const d=document.createElement('div'); d.className='btn-card'+(selBarrio&&selBarrio.id===b.id?' active':''); d.innerHTML=`<div class="name">${b.nombre}</div><div class="sub">${b.sub}</div>`; d.onclick=()=>{ selBarrio=b; selLote=null; loteConfirmado=false; selEntrega=null; montoCustom=0; selCuotas=null; render(); }; g.appendChild(d); });
+}
+
+function renderLotes(){
+  const step=document.getElementById('step2'); const g=document.getElementById('lote-grid');
+  const wrap=document.getElementById('lote-elegido-wrap');
+  if(!selBarrio){ step.classList.add('locked'); g.innerHTML='<div style="font-size:13px;color:var(--text-light);grid-column:1/-1;">Primero elegí un barrio</div>'; wrap.innerHTML=''; return; }
+  step.classList.remove('locked'); g.innerHTML='';
+  selBarrio.lotes.forEach(l=>{
+    const d=document.createElement('div');
+    d.className='btn-card'+(selLote&&selLote.id===l.id?' active':'');
+    d.innerHTML=`<div class="name">${l.label}</div><div class="sub">${l.sup}</div><div class="price">USD ${l.precio.toLocaleString('es-AR')}</div>`;
+    d.onclick=()=>{ selLote=l; loteConfirmado=false; selEntrega=null; montoCustom=0; selCuotas=null; render(); };
+    g.appendChild(d);
+  });
+
+  if(selLote){
+    wrap.innerHTML = `
+      <div class="lote-elegido-card">
+        <div class="info">
+          <div class="name">${selLote.label} — ${selBarrio.nombre}</div>
+          <div class="sub">${selLote.sup}</div>
+        </div>
+        <div>
+          <div class="price-label">Precio</div>
+          <div class="price">USD ${selLote.precio.toLocaleString('es-AR')}</div>
+        </div>
+      </div>
+      <button class="continuar-btn" id="continuar-btn">Simular cuotas para este lote →</button>
+    `;
+    document.getElementById('continuar-btn').onclick = ()=>{ loteConfirmado=true; render(); document.getElementById('step3').scrollIntoView({behavior:'smooth', block:'start'}); };
+  } else {
+    wrap.innerHTML = '';
+  }
+}
+
+function renderEntrega(){
+  const step=document.getElementById('step3'); const g=document.getElementById('entrega-grid');
+  const customWrap=document.getElementById('monto-custom');
+  if(!selLote || !loteConfirmado){ step.classList.add('hidden'); step.classList.add('locked'); return; }
+  step.classList.remove('hidden'); step.classList.remove('locked'); g.innerHTML='';
+  ENTREGA_OPS.forEach(e=>{
+    const d=document.createElement('div');
+    d.className='btn-card'+(selEntrega&&selEntrega.id===e.id?' active':'');
+    d.innerHTML=`<div class="name">${e.label}</div>`;
+    d.onclick=()=>{ selEntrega=e; if(e.id!=='custom'){ montoCustom=0; } selCuotas=null; render(); if(e.id==='custom'){ setTimeout(()=>document.getElementById('monto-input').focus(),150); } };
+    g.appendChild(d);
+  });
+  customWrap.classList.toggle('show', !!(selEntrega && selEntrega.id==='custom'));
+}
+
+function renderCuotas(){
+  const step=document.getElementById('step4'); const g=document.getElementById('cuotas-grid');
+  if(!selLote || !loteConfirmado || !selEntrega){ step.classList.add('hidden'); step.classList.add('locked'); g.innerHTML=''; return; }
+  step.classList.remove('hidden'); step.classList.remove('locked'); g.innerHTML='';
+  const saldo=getSaldoFinanciar();
+  CUOTAS_OPS.forEach(n=>{
+    const cuotaPreview = calcCuota(saldo, n);
+    const d=document.createElement('div');
+    d.className='btn-card'+(selCuotas===n?' active':'');
+    d.innerHTML=`<div class="name">${n} cuotas</div><div class="price">${fmt(cuotaPreview)}</div>`;
+    d.onclick=()=>{ selCuotas=n; render(); };
+    g.appendChild(d);
+  });
+}
+
+function renderResultado(){
+  const div=document.getElementById('resultado');
+  if(!selBarrio||!selLote||!loteConfirmado||!selEntrega||!selCuotas){ div.style.display='none'; return; }
+  div.style.display='block';
+  const saldo=getSaldoFinanciar();
+  const cuota=calcCuota(saldo,selCuotas);
+  document.getElementById('res-cuota').textContent=fmt(cuota);
+  document.getElementById('res-sub').textContent=selCuotas+' cuotas mensuales en USD';
+  document.getElementById('res-lote').textContent=selLote.label;
+  document.getElementById('res-barrio').textContent=selBarrio.nombre;
+  document.getElementById('res-sup').textContent=selLote.sup;
+  const infoEl=document.getElementById('res-entrega-info');
+  if(selEntrega.id==='sin'){ infoEl.textContent='Sin entrega inicial'; }
+  else if(selEntrega.id==='custom'){ infoEl.textContent='Con entrega inicial declarada por el comprador'; }
+  else { infoEl.textContent='Con entrega inicial del '+selEntrega.label; }
+  setTimeout(()=>div.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+function consultarWA(){
+  if(!selBarrio||!selLote||!selEntrega||!selCuotas) return;
+  const saldo=getSaldoFinanciar();
+  const cuota=calcCuota(saldo,selCuotas);
+  let entregaTxt = selEntrega.id==='sin' ? 'sin entrega inicial' : (selEntrega.id==='custom' ? 'con una entrega inicial' : 'con entrega inicial del '+selEntrega.label);
+  const msg=`Hola! Simulé el financiamiento para el lote *${selLote.label}* de *${selBarrio.nombre}* (${selLote.sup}), ${entregaTxt}, en *${selCuotas} cuotas* de *${fmt(cuota)}*. Me gustaría recibir más información.`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function reiniciar(){
+  selLote=null; loteConfirmado=false; selEntrega=null; montoCustom=0; selCuotas=null;
+  render();
+  document.getElementById('step2').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function render(){ renderBarrios(); renderLotes(); renderEntrega(); renderCuotas(); renderResultado(); }
+render();
+
+document.getElementById('monto-input').addEventListener('input', (e)=>{
+  montoCustom = parseFloat(e.target.value) || 0;
+  selCuotas = null;
+  renderCuotas();
+  renderResultado();
+});
+
+window.addEventListener('load',()=>{
+  const url=window.location.href;
+  if(url && !url.startsWith('file://') && !url.startsWith('blob:') && url!=='about:blank'){
+    document.getElementById('qr-img').src=`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}&color=2C2416&bgcolor=FFFFFF`;
+    const lnk=document.getElementById('qr-link');
+    lnk.href=url; lnk.textContent=url;
+    document.querySelector('.qr-section > p').textContent='Escaneá para abrir en el celular o compartí el link';
+  }
+});
+</script>
+</body>
+</html>
