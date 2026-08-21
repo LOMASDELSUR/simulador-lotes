@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Simulador de Financiamiento de Lotes — Lomas del Sur</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--cream:#F5F0E8;--earth:#1F3A2A;--green:#3A6B4A;--green-light:#EAF2EC;--border:rgba(44,36,22,.13);--text:#2C2416;--text-mid:#6B5E4A;--text-light:#9B8E7A}
+html,body{background:var(--cream);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:480px;margin:0 auto;padding:0 0 80px}
+header{background:var(--earth);padding:1.75rem 1.5rem 1.5rem;text-align:center}
+.logo{width:48px;height:48px;background:var(--green);border-radius:50%;margin:0 auto .75rem;display:flex;align-items:center;justify-content:center}
+.logo svg{width:24px;height:24px;fill:white}
+header h1{font-family:'Playfair Display',serif;font-size:20px;font-weight:500;color:var(--cream);letter-spacing:-.01em;margin-bottom:4px}
+.header-empresa{font-size:13px;color:rgba(245,240,232,.75);font-weight:500;margin-bottom:6px}
+.header-ubicaciones{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.header-ub{font-size:11px;color:rgba(245,240,232,.5);letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;gap:4px}
+.header-ub::before{content:'📍';font-size:10px}
+.body{padding:1.5rem 1.25rem}
+.step{margin-bottom:1.75rem}
+.step.locked{opacity:.35;pointer-events:none}
+.step.hidden{display:none}
+.step-label{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text-light);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.step-label::before{content:attr(data-n);width:20px;height:20px;background:var(--earth);color:var(--cream);border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.grid3{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.entrega-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.cuotas-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.btn-card{border:1.5px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;background:white;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.btn-card:active{background:var(--green-light)}
+.btn-card.active{border:2px solid var(--green);background:var(--green-light)}
+.btn-card .name{font-size:13px;font-weight:500;color:var(--text);line-height:1.2}
+.btn-card .sub{font-size:11px;color:var(--text-light);margin-top:3px}
+.btn-card .price{font-size:11px;color:var(--green);font-weight:500;margin-top:4px;line-height:1.4}
+.btn-card.active .name{color:var(--green)}
+.entrega-info{background:white;border:1.5px solid var(--green);border-radius:12px;padding:12px 14px;margin-bottom:10px;display:none}
+.entrega-info.show{display:block}
+.entrega-info .ei-title{font-size:11px;color:var(--text-light);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.entrega-info .ei-usd{font-size:20px;font-weight:500;color:var(--green)}
+.entrega-info .ei-ars{font-size:14px;color:var(--text-mid);margin-top:3px}
+.custom-block{display:none;margin-top:2px}
+.custom-block.show{display:block}
+.inp-row{display:flex;align-items:center;background:white;border:1.5px solid var(--border);border-radius:10px;padding:4px 14px;margin-bottom:8px}
+.inp-row span{font-size:13px;color:var(--text-light);margin-right:6px;white-space:nowrap}
+.inp-row input{border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:16px;padding:10px 0;width:100%;background:transparent;color:var(--text)}
+.hint{font-size:11px;color:var(--text-light);margin-bottom:6px}
+.res-card{background:var(--earth);border-radius:16px;padding:1.5rem;color:var(--cream);margin-bottom:1rem}
+.res-tag{font-size:11px;color:rgba(245,240,232,.4);letter-spacing:.05em;text-transform:uppercase;margin-bottom:1.25rem;line-height:1.5}
+.res-tag span{color:rgba(245,240,232,.8)}
+.res-main{text-align:center;margin-bottom:1.25rem}
+.res-main-label{font-size:11px;color:rgba(245,240,232,.45);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.res-usd{font-family:'Playfair Display',serif;font-size:36px;color:#7DC898;line-height:1}
+.res-ars{font-size:18px;color:rgba(245,240,232,.6);margin-top:6px}
+.res-sub{font-size:12px;color:rgba(245,240,232,.35);margin-top:4px}
+.res-entrega{font-size:12px;color:rgba(245,240,232,.55);padding-top:10px;border-top:1px solid rgba(255,255,255,.08);margin-bottom:1.25rem;line-height:1.6;white-space:pre-line}
+.wa-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;background:#25D366;border:none;border-radius:12px;color:white;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;touch-action:manipulation}
+.wa-btn:active{background:#1eb355}
+.wa-btn svg{width:22px;height:22px;fill:white;flex-shrink:0}
+.reiniciar{display:block;text-align:center;font-size:13px;color:var(--green);cursor:pointer;text-decoration:underline;margin-top:10px}
+footer{text-align:center;padding:2rem 1.25rem 0;font-size:12px;color:var(--text-light);line-height:1.9}
+footer strong{color:var(--text-mid)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo"><svg viewBox="0 0 24 24"><path d="M3 17l4-8 4 5 3-3 4 6H3z"/><circle cx="19" cy="6" r="1.5"/></svg></div>
+    <p class="header-empresa">Lomas del Sur Desarrollos Inmobiliarios</p>
+    <h1>Simulador de financiamiento de lotes</h1>
+    <div class="header-ubicaciones">
+      <span class="header-ub">Colonia Ensayo</span>
+      <span class="header-ub">Aldea Brasilera</span>
+    </div>
+  </header>
+  <div class="body">
+
+    <div class="step" id="s1">
+      <p class="step-label" data-n="1">Elegí el lote</p>
+      <div class="grid3" id="lote-grid"></div>
+    </div>
+
+    <div class="step locked" id="s2">
+      <p class="step-label" data-n="2">Entrega inicial</p>
+      <div class="entrega-grid" id="entrega-grid"></div>
+      <div class="entrega-info" id="entrega-info">
+        <div class="ei-title">Monto de entrega</div>
+        <div class="ei-usd" id="ei-usd">—</div>
+        <div class="ei-ars" id="ei-ars">—</div>
+      </div>
+      <div class="custom-block" id="custom-block">
+        <p class="hint">Ingresá cuánto podés entregar</p>
+        <div class="inp-row"><span>USD</span><input type="number" id="inp-usd" placeholder="Monto en dólares" min="0" step="100" inputmode="numeric"></div>
+        <div class="inp-row"><span>ARS $</span><input type="number" id="inp-ars" placeholder="Monto en pesos" min="0" step="10000" inputmode="numeric"></div>
+        <p class="hint">Podés escribir en USD o en pesos — se convierte al blue $1.560</p>
+      </div>
+    </div>
+
+    <div class="step locked hidden" id="s3">
+      <p class="step-label" data-n="3">Cantidad de cuotas</p>
+      <div class="cuotas-grid" id="cuotas-grid"></div>
+    </div>
+
+    <div id="resultado" style="display:none;">
+      <div class="res-card">
+        <p class="res-tag">Lote <span id="r-lote">—</span> · <span id="r-sup">—</span></p>
+        <div class="res-main">
+          <p class="res-main-label">Tu cuota mensual</p>
+          <p class="res-usd" id="r-usd">—</p>
+          <p class="res-ars" id="r-ars">—</p>
+          <p class="res-sub" id="r-sub">—</p>
+        </div>
+        <p class="res-entrega" id="r-entrega">—</p>
+        <p style="font-size:11px;color:rgba(245,240,232,.5);text-align:center;margin-bottom:1rem;line-height:1.6;">📋 Cuotas actualizables cada 12 meses<br>según índice a convenir (CAC · IPC · Nafta u otro)</p>
+        <button class="wa-btn" onclick="consultarWA()">
+          <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.998 2C6.477 2 2 6.477 2 12c0 1.821.476 3.533 1.31 5.016L2 22l5.12-1.293A9.953 9.953 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 11.998 2zm.002 18a7.96 7.96 0 0 1-4.063-1.113l-.292-.173-3.037.767.796-2.964-.19-.305A7.96 7.96 0 0 1 4 12c0-4.418 3.582-8 8-8s8 3.582 8 8-3.582 8-8 8z"/></svg>
+          Consultar por este lote
+        </button>
+      </div>
+      <span class="reiniciar" onclick="reiniciar()">Volver a simular</span>
+    </div>
+
+    <footer>
+      <strong>Lomas del Sur Desarrollos Inmobiliarios</strong><br>
+      📍 Colonia Ensayo · Aldea Brasilera · Entre Ríos<br>
+      Financiación 100% en pesos<br>
+      📋 Cuotas actualizables cada 12 meses según índice a convenir<br>
+      (CAC · IPC · Nafta u otro)
+    </footer>
+  </div>
+</div>
+<script>
+const TASA=0.11,BLUE=1560,WA='543435033220';
+const r=Math.pow(1+TASA,1/12)-1;
+const LOTES=[
+  {id:'10500',label:'USD 10.500',sup:'450m²',precio:10500},
+  {id:'11000',label:'USD 11.000',sup:'450m²',precio:11000},
+  {id:'11500',label:'USD 11.500',sup:'510m²',precio:11500},
+  {id:'12500',label:'USD 12.500',sup:'450m²',precio:12500},
+];
+const ENTREGAS=[
+  {id:'sin',label:'Sin entrega',pct:0},
+  {id:'5',label:'5%',pct:.05},
+  {id:'10',label:'10%',pct:.10},
+  {id:'20',label:'20%',pct:.20},
+  {id:'30',label:'30%',pct:.30},
+  {id:'otro',label:'Elegir monto de entrega en $ o USD',pct:null},
+];
+const CUOTAS=[12,24,36,48,60,72,84,96,100];
+let sL=null,sE=null,montoUSD=0,sC=null;
+const fU=n=>'USD '+n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fP=n=>'$ '+Math.round(n).toLocaleString('es-AR');
+const calcC=(P,n)=>P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1);
+const getSaldo=()=>{
+  if(!sL||!sE)return sL?sL.precio:0;
+  if(sE.pct!==null)return sL.precio*(1-sE.pct);
+  return Math.max(sL.precio-montoUSD,0);
+};
+function mk(cls,html,fn){const d=document.createElement('div');d.className=cls;d.innerHTML=html;d.onclick=fn;return d;}
+
+function rLotes(){
+  const g=document.getElementById('lote-grid');g.innerHTML='';
+  LOTES.forEach(l=>{
+    g.appendChild(mk('btn-card'+(sL&&sL.id===l.id?' active':''),
+      `<div class="name">${l.label}</div><div class="price">${fP(l.precio*BLUE)}</div><div class="sub">${l.sup}</div>`,
+      ()=>{sL=l;sE=null;montoUSD=0;sC=null;render();}
+    ));
+  });
+}
+
+function rEntrega(){
+  const s2=document.getElementById('s2'),g=document.getElementById('entrega-grid');
+  const info=document.getElementById('entrega-info'),cb=document.getElementById('custom-block');
+  if(!sL){s2.classList.add('locked');return;}
+  s2.classList.remove('locked');g.innerHTML='';
+  ENTREGAS.forEach(e=>{
+    const montoE=(sL&&e.pct!==null&&e.pct>0)?sL.precio*e.pct:null;
+    const subHtml=montoE?`<div class="price">${fU(montoE)}<br>${fP(montoE*BLUE)}</div>`:'';
+    g.appendChild(mk('btn-card'+(sE&&sE.id===e.id?' active':''),
+      `<div class="name">${e.label}</div>${subHtml}`,
+      ()=>{sE=e;montoUSD=0;sC=null;document.getElementById('inp-usd').value='';document.getElementById('inp-ars').value='';render();if(e.id==='otro')setTimeout(()=>document.getElementById('inp-usd').focus(),100);}
+    ));
+  });
+  if(sE&&sE.pct!==null&&sE.pct>0){
+    const m=sL.precio*sE.pct;
+    document.getElementById('ei-usd').textContent=fU(m);
+    document.getElementById('ei-ars').textContent=fP(m*BLUE)+' al blue $'+BLUE.toLocaleString('es-AR');
+    info.classList.add('show');
+  } else {info.classList.remove('show');}
+  cb.classList.toggle('show',!!(sE&&sE.id==='otro'));
+}
+
+function rCuotas(){
+  const s3=document.getElementById('s3'),g=document.getElementById('cuotas-grid');
+  const ok=sL&&sE&&(sE.pct!==null||(sE.pct===null&&montoUSD>0));
+  if(!ok){s3.classList.add('hidden');s3.classList.add('locked');g.innerHTML='';return;}
+  s3.classList.remove('hidden');s3.classList.remove('locked');g.innerHTML='';
+  const sal=getSaldo();
+  CUOTAS.forEach(n=>{
+    const c=calcC(sal,n);
+    g.appendChild(mk('btn-card'+(sC===n?' active':''),
+      `<div class="name">${n} cuotas</div><div class="price">${fU(c)}<br>${fP(c*BLUE)}</div>`,
+      ()=>{sC=n;render();setTimeout(()=>document.getElementById('resultado').scrollIntoView({behavior:'smooth',block:'nearest'}),80);}
+    ));
+  });
+}
+
+function rResultado(){
+  const div=document.getElementById('resultado');
+  if(!sL||!sE||!sC||(sE.pct===null&&montoUSD===0)){div.style.display='none';return;}
+  div.style.display='block';
+  const sal=getSaldo(),c=calcC(sal,sC);
+  document.getElementById('r-usd').textContent=fU(c);
+  document.getElementById('r-ars').textContent=fP(c*BLUE)+' / mes';
+  document.getElementById('r-sub').textContent=sC+' cuotas mensuales';
+  document.getElementById('r-lote').textContent=sL.label;
+  document.getElementById('r-sup').textContent=sL.sup;
+  let et='Sin entrega inicial';
+  if(sE.pct>0){const m=sL.precio*sE.pct;et='Entrega del '+Math.round(sE.pct*100)+'%\n'+fU(m)+' · '+fP(m*BLUE);}
+  else if(sE.pct===null&&montoUSD>0){et='Entrega de '+fU(montoUSD)+' · '+fP(montoUSD*BLUE);}
+  document.getElementById('r-entrega').textContent=et;
+}
+
+function consultarWA(){
+  if(!sL||!sE||!sC)return;
+  const sal=getSaldo(),c=calcC(sal,sC);
+  let et='sin entrega inicial';
+  if(sE.pct>0){const m=sL.precio*sE.pct;et='con entrega del '+Math.round(sE.pct*100)+'% ('+fU(m)+' · '+fP(m*BLUE)+')';}
+  else if(sE.pct===null&&montoUSD>0){et='con entrega de '+fU(montoUSD)+' ('+fP(montoUSD*BLUE)+')';}
+  const msg=`Hola! Simulé el financiamiento en *Lomas del Sur Desarrollos Inmobiliarios* para un lote *${sL.label}* (${sL.sup}), ${et}, en *${sC} cuotas* de *${fU(c)}* (${fP(c*BLUE)}/mes). ¡Me gustaría recibir más información!`;
+  window.open(`https://wa.me/${WA}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+function reiniciar(){sL=null;sE=null;montoUSD=0;sC=null;render();window.scrollTo({top:0,behavior:'smooth'});}
+function render(){rLotes();rEntrega();rCuotas();rResultado();}
+render();
+
+document.getElementById('inp-usd').addEventListener('input',e=>{
+  montoUSD=parseFloat(e.target.value)||0;
+  document.getElementById('inp-ars').value=montoUSD>0?Math.round(montoUSD*BLUE):'';
+  sC=null;rCuotas();rResultado();
+});
+document.getElementById('inp-ars').addEventListener('input',e=>{
+  const ars=parseFloat(e.target.value)||0;
+  montoUSD=ars>0?Math.round(ars/BLUE*100)/100:0;
+  document.getElementById('inp-usd').value=montoUSD>0?montoUSD:'';
+  sC=null;rCuotas();rResultado();
+});
+</script>
+</body>
+</html>
